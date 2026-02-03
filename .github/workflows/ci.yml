@@ -27,9 +27,9 @@ jobs:
       # Langkah ini memastikan NDK terinstal (versi sesuai default runner atau install spesifik jika perlu)
       - name: Install Android NDK
         run: |
-          echo "y" | sdkmanager "ndk;25.2.9519653" "cmake;3.22.1"
+          echo "y" | sdkmanager "ndk;27.0.12077973" "cmake;3.22.1"
           # Set environment variable untuk langkah selanjutnya
-          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.2.9519653" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> $GITHUB_ENV
 
       - name: Setup Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
