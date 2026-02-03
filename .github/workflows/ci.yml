@@ -52,3 +52,4 @@ jobs:
       with:
         name: droidVNC-NG-Rust-Debug
         path: app/build/outputs/apk/debug/*.apk
+        
