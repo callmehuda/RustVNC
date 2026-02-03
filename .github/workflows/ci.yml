@@ -24,24 +24,25 @@ jobs:
     - name: Set up Rust
       uses: dtolnay/rust-toolchain@stable
       with:
-        targets: arm64-v8a, armeabi-v7a, x86_64, i686-linux-android
+        # Menambahkan target arsitektur Android yang diminta README
+        targets: aarch64-linux-android, armv7-linux-androideabi, x86_64-linux-android, i686-linux-android
         components: rustfmt, clippy
 
     - name: Install cargo-ndk
       run: cargo install cargo-ndk
 
-    - name: Setup Android NDK
-      uses: nndixon/setup-android-ndk@v1
-      with:
-        ndk-version: r25c # Sesuaikan dengan kebutuhan (README meminta r23+)
-        add-to-path: true
+    - name: Set up NDK Path
+      # Menggunakan NDK default yang sudah ada di runner ubuntu-latest
+      # Secara default berlokasi di /usr/local/lib/android/sdk/ndk-bundle
+      run: |
+        echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk-bundle" >> $GITHUB_ENV
+        echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk-bundle" >> $GITHUB_ENV
 
     - name: Rust Cache
       uses: Swatinem/rust-cache@v2
-      with:
-        workspaces: "rustvncserver -> target" # Sesuaikan path folder Rust jika berbeda
 
     - name: Build Rust Libraries
+      # Kita menjalankan task Gradle yang memicu build Rust
       run: ./gradlew buildRust
 
     - name: Build Debug APK
@@ -52,4 +53,3 @@ jobs:
       with:
         name: droidVNC-NG-Rust-Debug
         path: app/build/outputs/apk/debug/*.apk
-        
