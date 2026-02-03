@@ -1,55 +1,69 @@
-name: Android Rust Build
+name: Android Build (Rust + Kotlin)
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main", "master" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main", "master" ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: 'gradle'
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
-    - name: Set up Rust
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        # Menambahkan target arsitektur Android yang diminta README
-        targets: aarch64-linux-android, armv7-linux-androideabi, x86_64-linux-android, i686-linux-android
-        components: rustfmt, clippy
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-    - name: Install cargo-ndk
-      run: cargo install cargo-ndk
+      # Langkah ini memastikan NDK terinstal (versi sesuai default runner atau install spesifik jika perlu)
+      - name: Install Android NDK
+        run: |
+          echo "y" | sdkmanager "ndk;25.2.9519653" "cmake;3.22.1"
+          # Set environment variable untuk langkah selanjutnya
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.2.9519653" >> $GITHUB_ENV
 
-    - name: Set up NDK Path
-      # Menggunakan NDK default yang sudah ada di runner ubuntu-latest
-      # Secara default berlokasi di /usr/local/lib/android/sdk/ndk-bundle
-      run: |
-        echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk-bundle" >> $GITHUB_ENV
-        echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk-bundle" >> $GITHUB_ENV
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
 
-    - name: Rust Cache
-      uses: Swatinem/rust-cache@v2
+      - name: Add Rust Compilation Targets
+        run: |
+          rustup target add aarch64-linux-android \
+                            armv7-linux-androideabi \
+                            i686-linux-android \
+                            x86_64-linux-android
 
-    - name: Build Rust Libraries
-      # Kita menjalankan task Gradle yang memicu build Rust
-      run: ./gradlew buildRust
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk
 
-    - name: Build Debug APK
-      run: ./gradlew assembleDebug
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "." # Lokasi Cargo.toml (root atau subfolder)
 
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: droidVNC-NG-Rust-Debug
-        path: app/build/outputs/apk/debug/*.apk
+      - name: Setup Gradle Cache
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Create local.properties
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          echo "ndk.dir=$ANDROID_NDK_HOME" >> local.properties
+
+      # Langkah Build Utama: Ini akan menjalankan 'buildRust' secara internal
+      # dan kemudian memaketkan APK
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Upload APK Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: droidVNC-NG-Debug
+          path: app/build/outputs/apk/debug/*.apk
